@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_variables)]
-
 mod error;
 mod scanner;
 mod token;
@@ -24,7 +22,7 @@ impl Lox {
 
     fn run_file(&mut self, path: String) -> ExitCode {
         let source = fs::read_to_string(path).unwrap();
-        self.run(source);
+        self.run(&source);
         if self.reporter.had_error {
             return ExitCode::from(65);
         }
@@ -42,12 +40,12 @@ impl Lox {
             if io::stdin().read_line(&mut line).unwrap() == 0 {
                 break;
             }
-            self.run(line.clone());
+            self.run(line.trim());
             self.reporter.reset();
         }
     }
 
-    fn run(&mut self, source: String) {
+    fn run(&mut self, source: &str) {
         let scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens(&mut self.reporter);
 
