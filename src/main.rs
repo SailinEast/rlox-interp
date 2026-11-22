@@ -1,8 +1,11 @@
+mod ast;
 mod error;
+mod parser;
 mod scanner;
 mod token;
 
 use crate::error::ErrorReporter;
+use crate::parser::Parser;
 use crate::scanner::Scanner;
 use std::env::args;
 use std::io::Write;
@@ -23,7 +26,7 @@ impl Lox {
     fn run_file(&mut self, path: String) -> ExitCode {
         let source = fs::read_to_string(path).unwrap();
         self.run(&source);
-        if self.reporter.had_error {
+        if self.reporter.had_error() {
             return ExitCode::from(65);
         }
         ExitCode::SUCCESS
@@ -48,9 +51,11 @@ impl Lox {
     fn run(&mut self, source: &str) {
         let scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens(&mut self.reporter);
+        let mut parser = Parser::new(tokens);
 
-        for token in tokens {
-            println!("{token:?}")
+        if let Some(expression) = parser.parse(&mut self.reporter) {
+            if self.reporter.had_error() { return; }
+            println!("{}", expression);
         }
     }
 }

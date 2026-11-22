@@ -235,7 +235,7 @@ mod tests {
     fn scan(source: &str) -> (Vec<Token>, bool) {
         let mut reporter = ErrorReporter::new();
         let tokens = Scanner::new(source).scan_tokens(&mut reporter);
-        (tokens, reporter.had_error)
+        (tokens, reporter.had_error())
     }
 
     #[test]
