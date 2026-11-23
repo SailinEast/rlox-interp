@@ -68,6 +68,8 @@ impl<'a> Scanner<'a> {
             b'+' => self.add_token(TokenType::Plus),
             b';' => self.add_token(TokenType::Semicolon),
             b'*' => self.add_token(TokenType::Star),
+            b'?' => self.add_token(TokenType::Question),
+            b':' => self.add_token(TokenType::Colon),
             b'!' => self.add_conditional_token(b'=', TokenType::BangEqual, TokenType::Bang),
             b'=' => self.add_conditional_token(b'=', TokenType::EqualEqual, TokenType::Equal),
             b'<' => self.add_conditional_token(b'=', TokenType::LessEqual, TokenType::Less),
@@ -247,7 +249,7 @@ mod tests {
 
     #[test]
     fn single_char_tokens() {
-        let (tokens, had_error) = scan("(){},.-+;* /");
+        let (tokens, had_error) = scan("(){},.-+;* /?:");
         assert!(!had_error);
         assert_eq!(
             tokens,
@@ -263,6 +265,8 @@ mod tests {
                 Token::new(TokenType::Semicolon, ";".into(), 1),
                 Token::new(TokenType::Star, "*".into(), 1),
                 Token::new(TokenType::Slash, "/".into(), 1),
+                Token::new(TokenType::Question, "?".into(), 1),
+                Token::new(TokenType::Colon, ":".into(), 1),
                 Token::new(TokenType::Eof, "".into(), 1),
             ]
         );

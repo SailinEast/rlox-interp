@@ -7,6 +7,7 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(Literal),
+    Ternary(Box<Expr>, Token, Box<Expr>, Box<Expr>),
     Unary(Token, Box<Expr>),
 }
 
@@ -35,6 +36,9 @@ impl fmt::Display for Expr {
             Expr::Binary(left, op, right) => write!(f, "({} {left} {right})", op.lexeme),
             Expr::Grouping(expr) => write!(f, "(group {expr})"),
             Expr::Literal(val) => write!(f, "{val}"),
+            Expr::Ternary(cond, op, truthy, falsy) => {
+                write!(f, "({} {cond} {truthy} {falsy})", op.lexeme)
+            }
             Expr::Unary(op, right) => write!(f, "({} {right})", op.lexeme),
         }
     }

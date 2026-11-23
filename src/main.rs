@@ -54,7 +54,9 @@ impl Lox {
         let mut parser = Parser::new(tokens);
 
         if let Some(expression) = parser.parse(&mut self.reporter) {
-            if self.reporter.had_error() { return; }
+            if self.reporter.had_error() {
+                return;
+            }
             println!("{}", expression);
         }
     }

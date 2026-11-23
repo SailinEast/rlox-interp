@@ -75,9 +75,19 @@ impl Parser {
                     break;
                 }
                 let op = self.advance().clone();
-                let rhs = self.parse_expr(bp.1)?;
 
-                lhs = Expr::Binary(Box::from(lhs), op, Box::from(rhs));
+                lhs = match op.token_type {
+                    TokenType::Question => {
+                        let truthy = self.parse_expr(0)?;
+                        self.consume(&TokenType::Colon, "Expect ':' after then branch.")?;
+                        let falsy = self.parse_expr(bp.1)?;
+                        Expr::Ternary(Box::from(lhs), op, Box::from(truthy), Box::from(falsy))
+                    }
+                    _ => {
+                        let rhs = self.parse_expr(bp.1)?;
+                        Expr::Binary(Box::from(lhs), op, Box::from(rhs))
+                    }
+                }
             } else {
                 break;
             }
@@ -88,6 +98,8 @@ impl Parser {
     // expr [op] expr, (main_bp, associativity)
     fn infix_bp(op: &TokenType) -> Option<(u8, u8)> {
         match op {
+            TokenType::Comma => Some((3, 4)),
+            TokenType::Question => Some((6, 5)),
             TokenType::EqualEqual | TokenType::BangEqual => Some((7, 8)),
             TokenType::Less
             | TokenType::LessEqual
@@ -192,6 +204,51 @@ mod tests {
     }
 
     #[test]
+    fn comma_associativity_and_precedence() {
+        assert_eq!(parse_str("1, 2, 3"), "(, (, 1 2) 3)");
+        assert_eq!(parse_str("1, 2, 3, 4"), "(, (, (, 1 2) 3) 4)");
+        assert_eq!(
+            parse_str("1 == 2, 3 < 4 != 5 > 6"),
+            "(, (== 1 2) (!= (< 3 4) (> 5 6)))"
+        );
+    }
+
+    #[test]
+    fn ternary_basic_and_arithmetic() {
+        assert_eq!(parse_str("1 ? 2 : 3"), "(? 1 2 3)");
+        assert_eq!(
+            parse_str("1 + 2 == 3 ? 4 * 5 : 6 - 7"),
+            "(? (== (+ 1 2) 3) (* 4 5) (- 6 7))"
+        );
+    }
+
+    #[test]
+    fn ternary_associativity_and_nesting() {
+        assert_eq!(parse_str("1 ? 2 : 3 ? 4 : 5"), "(? 1 2 (? 3 4 5))");
+        assert_eq!(
+            parse_str("1 ? 2 : 3 ? 4 : 5 ? 6 : 7"),
+            "(? 1 2 (? 3 4 (? 5 6 7)))"
+        );
+        assert_eq!(parse_str("1 ? 2 ? 3 : 4 : 5"), "(? 1 (? 2 3 4) 5)");
+        assert_eq!(
+            parse_str("1 ? 2 ? 3 : 4 : 5 ? 6 : 7"),
+            "(? 1 (? 2 3 4) (? 5 6 7))"
+        );
+    }
+
+    #[test]
+    fn ternary_and_comma_interactions() {
+        assert_eq!(parse_str("1 ? 2, 3 : 4"), "(? 1 (, 2 3) 4)");
+        assert_eq!(parse_str("1 ? 2, 3, 4 : 5"), "(? 1 (, (, 2 3) 4) 5)");
+        assert_eq!(parse_str("1 ? 2 : 3, 4"), "(, (? 1 2 3) 4)");
+        assert_eq!(parse_str("1, 2 ? 3 : 4"), "(, 1 (? 2 3 4))");
+        assert_eq!(
+            parse_str("1, 2 ? 3, 4 : 5, 6"),
+            "(, (, 1 (? 2 (, 3 4) 5)) 6)"
+        );
+    }
+
+    #[test]
     fn literals() {
         assert_eq!(parse_str("42"), "42");
         assert_eq!(parse_str("\"hi\""), "hi");
@@ -261,5 +318,19 @@ mod tests {
         parse_err("1 ! 2");
         parse_err("1 + 2 )");
         parse_err("1 2");
+    }
+
+    #[test]
+    fn comma_and_ternary_syntax_errors() {
+        parse_err("1,");
+        parse_err(", 1");
+        parse_err("1,, 2");
+        parse_err("1 ? 2");
+        parse_err("1 ? 2 :");
+        parse_err("1 ? : 3");
+        parse_err("? 2 : 3");
+        parse_err("1 : 2");
+        parse_err("1 ? 2 : 3 : 4");
+        parse_err("1 ? 2 ? 3 : 4");
     }
 }
